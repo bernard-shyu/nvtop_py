@@ -4,7 +4,7 @@ from .widgets.table_widget import GPUStatsTable, ProcessTable
 from .widgets.plot_widget import PlotWidget
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
         self.setWindowTitle("NVTop Monitor")
         self.central_widget = QWidget()
@@ -12,15 +12,16 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         self.central_widget.setLayout(layout)
 
-        self.plot_widget = PlotWidget()
+        self.config = config
+        self.plot_widget = PlotWidget(self.config)
         self.stats_table = GPUStatsTable()
         self.process_table = ProcessTable()
         layout.addWidget(self.plot_widget)
         layout.addWidget(self.stats_table)
         layout.addWidget(self.process_table)
 
-    def start_worker(self, config):
-        self.worker = CollectorWorker()
+    def start_worker(self):
+        self.worker = CollectorWorker(self.config)
         self.worker.data_ready.connect(self.update_ui)
         self.worker.start()
 

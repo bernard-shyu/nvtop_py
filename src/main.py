@@ -6,9 +6,9 @@ from .config_handler import ConfigManager
 def main():
     app = QApplication(sys.argv)
     config = ConfigManager()
-    window = MainWindow()
+    window = MainWindow(config)
     window.show()
-    window.start_worker(config)
+    window.start_worker()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":

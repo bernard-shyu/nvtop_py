@@ -5,9 +5,9 @@ from .config_handler import ConfigManager
 class CollectorWorker(QThread):
     data_ready = pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, config, parent=None):
         super().__init__(parent)
-        self.config = ConfigManager()
+        self.config = config
         self.refresh_interval = self.config.get('refresh_interval')
 
     def run(self):

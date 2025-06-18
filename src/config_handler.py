@@ -12,8 +12,11 @@ class ConfigManager:
         except FileNotFoundError:
             self.config = {'app': {}}
 
-    def get(self, key):
+    def get(self, key, default=None):
         # Command-line args take precedence over TOML config
         if hasattr(self.args, key):
             return getattr(self.args, key)
-        return self.config.get('app', {}).get(key)
+        try:
+            return self.config.get('app', {}).get(key)
+        except:
+            return default
