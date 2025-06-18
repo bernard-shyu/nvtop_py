@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QLabel
 from .worker import CollectorWorker
 from .widgets.table_widget import GPUStatsTable, ProcessTable
+from .widgets.plot_widget import PlotWidget
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -11,11 +12,11 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
         self.central_widget.setLayout(layout)
 
-        self.plot_label = QLabel("Plot Area")
-        self.gpu_table = GPUStatsTable()
+        self.plot_widget = PlotWidget()
+        self.stats_table = GPUStatsTable()
         self.process_table = ProcessTable()
-        layout.addWidget(self.plot_label)
-        layout.addWidget(self.gpu_table)
+        layout.addWidget(self.plot_widget)
+        layout.addWidget(self.stats_table)
         layout.addWidget(self.process_table)
 
     def start_worker(self, config):
@@ -24,5 +25,6 @@ class MainWindow(QMainWindow):
         self.worker.start()
 
     def update_ui(self, data):
-        self.gpu_table.update_data(data['static'])
+        self.stats_table.update_data(data['static'])
         self.process_table.update_data(data['processes'])
+        self.plot_widget.update_plot(data['static'])
