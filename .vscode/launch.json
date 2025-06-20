@@ -1,0 +1,39 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: APP nvtop_py - MAIN",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/nvtop_py",
+            "module": "src.main",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "CHART_ENGINE": "MPL_FINANCE"
+            },
+            "args": [
+                "--RESOLUTION", "1600x800",
+                "--X_data_points", "1500",
+                "--refresh_interval", "0.5"
+            ]
+            // "args": "${command:pickArgs}"
+        },
+        {
+            "name": "Python: APP tmp",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nvtop_py/src/main.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}
