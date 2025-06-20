@@ -4,6 +4,9 @@ from .widgets.table_widget import GPUStatsTable, ProcessTable
 from .widgets.plot_widget import PlotWidget
 
 class MainWindow(QMainWindow):
+    N_ROWS_STATS_TABLE = 2
+    N_ROWS_PROC_TABLE  = 5
+
     def __init__(self, config):
         super().__init__()
         self.setWindowTitle("NVTop Monitor")
@@ -21,30 +24,20 @@ class MainWindow(QMainWindow):
         # Apply QT styles from configuration
         plot_font_size = self.config.get('plot_style', {}).get('font_size', 20)
         table_font_size = self.config.get('table_style', {}).get('font_size', 20)
-        table_cell_height = self.config.get('table_style', {}).get('table_cell_height', 40)  # Default to 40px  per row to ensure visibility
+        table_cell_height = int(table_font_size) + 4     # Table cell height, need extra padding space
 
-        self.plot_widget = PlotWidget(self.config)
-        self.stats_table = GPUStatsTable()
-        self.process_table = ProcessTable()
+        self.plot_widget   = PlotWidget(self.config)
+        self.stats_table   = GPUStatsTable(self.N_ROWS_STATS_TABLE)
+        self.process_table = ProcessTable(self.N_ROWS_PROC_TABLE)
 
         self.plot_widget.setStyleSheet(f"font-size: {plot_font_size}px;")
         self.stats_table.setStyleSheet(f"font-size: {table_font_size}px;")
         self.process_table.setStyleSheet(f"font-size: {table_font_size}px;")
         
-        # Set size policies for layout constraints
-        self.process_table.setMaximumHeight(7 * table_cell_height)  # Fixed to 6 rows (5 data + 1 title), +1 for extra row
-        self.process_table.setSizePolicy(self.process_table.sizePolicy().horizontalPolicy(), 
-                                         QSizePolicy.Fixed)
-        self.stats_table.setMaximumHeight(4 * table_cell_height)  # Fixed to 3 rows (2 data + 1 title), +1 for extra row
-        self.stats_table.setSizePolicy(self.stats_table.sizePolicy().horizontalPolicy(), 
-                                       QSizePolicy.Fixed)
-        self.plot_widget.setSizePolicy(QSizePolicy.Expanding, 
-                                       QSizePolicy.Expanding)
-        
         self.stats_table_row = 0  # Start with the third row for static values
-        layout.addWidget(self.plot_widget, 1)  # Stretch factor 1 to expand
-        layout.addWidget(self.stats_table, 0)  # No stretch, fixed height
-        layout.addWidget(self.process_table, 0)  # No stretch, fixed height
+        layout.addWidget(self.plot_widget, stretch = 1)  # Stretch factor 1 to expand
+        layout.addWidget(self.stats_table, stretch = 0)  # No stretch, fixed height
+        layout.addWidget(self.process_table, stretch = 0)  # No stretch, fixed height
 
     def start_worker(self):
         self.worker = CollectorWorker(self.config)

@@ -1,8 +1,11 @@
 import subprocess
 import pandas as pd
-import io
+import io, re
 
 class DataCollector:
+    def __init__(self):
+        pass
+
     def get_gpu_stats(self):
         try:
             result = subprocess.run(
@@ -25,9 +28,27 @@ class DataCollector:
                 text=True,
                 check=True
             )
-            data = result.stdout.strip()
+            """
+            bernard@BXUTP-FPGA-Linux:~$ nvidia-smi pmon -c 1 -s um
+            # gpu         pid   type     sm    mem    enc    dec    jpg    ofa     fb   ccpm    command 
+            # Idx           #    C/G      %      %      %      %      %      %     MB     MB    name 
+                0       2355     G      -      -      -      -      -      -      4      0    Xorg           
+                0       3816   C+G      -      -      -      -      -      -    112      0    gnome-remote-de
+                0     740204     C      -      -      -      -      -      -   5830      0    ollama         
+            """
+
+            output = result.stdout
+            lines = output.split('\n')
+            # Remove leading '# ' from the first two lines (title lines)
+            if len(lines) >= 2:
+                lines[0] = lines[0].replace('# ', '').strip()
+                lines[1] = lines[1].replace('# ', '').strip()
+
+            data = '\n'.join(lines)
             df = pd.read_csv(io.StringIO(data), sep=r'\s+')
             processes = df.to_dict('records')
             return processes
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"nvidia-smi pmon command failed: {e}") from e
+
+        except Exception as e:
+            print(f"Error collecting process stats: {e}")
+            return []

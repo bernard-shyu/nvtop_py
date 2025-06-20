@@ -22,7 +22,6 @@ class PlotWidget(FigureCanvas):
         self.temperature_data = np.zeros(self.max_points)
         self.power_draw_data = np.zeros(self.max_points)
         self.mem_utilization_data = np.zeros(self.max_points)
-        self.mem_total = 1.0  # Default to avoid division by zero
         self.gpu_utilization_data = np.zeros(self.max_points)
         self.data_count = 0
 
@@ -31,22 +30,22 @@ class PlotWidget(FigureCanvas):
             'temp': self.ax_temp.plot([], [], label='Temperature (°C)', 
                                       color=config.get('temp_color', '#FF0000'), 
                                       linewidth=config.get('temp_width', 1.5))[0],
-            'power': self.ax_power.plot([], [], label='Power Draw (W)', 
-                                        color=config.get('power_color', '#00FF00'), 
-                                        linewidth=config.get('power_width', 1.5))[0],
+            'power': self.ax_power.plot([], [], label='Power Draw (%)', 
+                                      color=config.get('power_color', '#00FF00'), 
+                                      linewidth=config.get('power_width', 1.5))[0],
             'memory': self.ax_memory.plot([], [], label='Memory Used (%)', 
-                                          color=config.get('memory_color', '#0000FF'), 
-                                          linewidth=config.get('memory_width', 1.5))[0],
+                                      color=config.get('memory_color', '#0000FF'), 
+                                      linewidth=config.get('memory_width', 1.5))[0],
             'util': self.ax_util.plot([], [], label='GPU Utilization (%)', 
                                       color=config.get('util_color', '#FFFF00'), 
                                       linewidth=config.get('util_width', 1.5))[0]
         }
         
         # Configure axes with specific Y-axis display range to accommodate data value 0 visually
-        self.ax_temp.set_ylim(-5, 100)  # Temperature range in Celsius, display from -5 to 100
-        self.ax_power.set_ylim(-5, 100)  # Power range in Watts, display from -5 to 100
-        self.ax_memory.set_ylim(-5, 100)  # Memory usage in percent, display from -5 to 100
-        self.ax_util.set_ylim(-5, 100)   # Utilization in percent, display from -5 to 100
+        self.ax_temp.set_ylim(-5,   100)  # Temperature range in Celsius, max 100 degree
+        self.ax_power.set_ylim(-5,  100)  # Power usage in percent, max 100%
+        self.ax_memory.set_ylim(-5, 100)  # Memory usage in percent, max 100%
+        self.ax_util.set_ylim(-5,   100)  # Utilization in percent, max 100%
         
         # Offset the right spines for visibility
         self.ax_memory.spines["right"].set_position(("axes", 1.1))
@@ -66,7 +65,7 @@ class PlotWidget(FigureCanvas):
         self.ax_temp.set_title('GPU Statistics Over Time', fontsize=font_size + 2)
         self.ax_temp.set_xlabel('Time Steps', fontsize=font_size)
         self.ax_temp.set_ylabel('Temperature (°C)', fontsize=font_size)
-        self.ax_power.set_ylabel('Power Draw (W)', fontsize=font_size)
+        self.ax_power.set_ylabel('Power Draw (%)', fontsize=font_size)
         self.ax_memory.set_ylabel('Memory Used (%)', fontsize=font_size)
         self.ax_util.set_ylabel('Utilization (%)', fontsize=font_size)
         self.ax_temp.grid(True)
@@ -82,12 +81,16 @@ class PlotWidget(FigureCanvas):
         
         # Update data arrays
         self.time_data[index] = self.data_count
-        self.temperature_data[index] = stats.get('temperature', 0)
-        self.power_draw_data[index] = stats.get('power_draw', 0)
-        memory_used = stats.get('memory_used', 0)
-        memory_total = stats.get('memory_total', 1.0) or 1.0  # Avoid division by zero
-        self.mem_total = memory_total
-        self.mem_utilization_data[index] = (memory_used / memory_total * 100) if memory_total > 0 else 0
+
+        power_used  = stats.get('power_draw', 0)
+        power_limit = stats.get('power_limit', 100) or 100                # Avoid division by zero, default to 100W
+        self.power_draw_data[index] =  (power_used / power_limit * 100)
+
+        memory_used  = stats.get('memory_used', 0)
+        memory_total = stats.get('memory_total', 16384) or 16384          # Avoid division by zero, default to 16GB
+        self.mem_utilization_data[index] = (memory_used / memory_total * 100)
+
+        self.temperature_data[index]     = stats.get('temperature', 0)
         self.gpu_utilization_data[index] = stats.get('utilization', 0)
         
         # Update buffer index

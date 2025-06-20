@@ -1,18 +1,20 @@
 from PyQt5.QtCore import QThread, pyqtSignal
 from .data_collector import DataCollector
-from .config_handler import ConfigManager
+import time
 
 class CollectorWorker(QThread):
     data_ready = pyqtSignal(dict)
 
-    def __init__(self, config, parent=None):
-        super().__init__(parent)
+    def __init__(self, config):
+        super().__init__()
+        self.running = False
         self.config = config
         self.refresh_interval = self.config.get('refresh_interval')
 
     def run(self):
-        while True:
-            collector = DataCollector()
+        collector = DataCollector()
+        self.running = True
+        while self.running:
             static_stats = collector.get_gpu_stats()
             process_stats = collector.get_process_stats()
             data = {
@@ -20,4 +22,7 @@ class CollectorWorker(QThread):
                 'processes': process_stats
             }
             self.data_ready.emit(data)
-            QThread.sleep(int(self.refresh_interval))  # type: ignore
+            time.sleep(float(self.config.get('refresh_interval', 1.0)))
+
+    def stop(self):
+        self.running = False
