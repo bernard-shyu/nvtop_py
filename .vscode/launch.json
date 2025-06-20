@@ -22,7 +22,7 @@
             },
             "args": [
                 "--RESOLUTION", "1600x800",
-                "--X_data_points", "1500",
+                "--X_data_points", "300",
                 "--refresh_interval", "0.5"
             ]
             // "args": "${command:pickArgs}"
