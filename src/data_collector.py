@@ -8,15 +8,32 @@ class DataCollector:
 
     def get_gpu_stats(self):
         try:
-            result = subprocess.run(
+            # Fetch basic GPU stats
+            result_basic = subprocess.run(
                 ['nvidia-smi', '--query-gpu=fan.speed,temperature.gpu,power.draw,power.limit,memory.used,memory.total,utilization.gpu', '--format=csv,noheader,nounits'],
                 capture_output=True,
                 text=True,
                 check=True
             )
-            stats = result.stdout.strip().split(',')
+            basic_stats = result_basic.stdout.strip().split(',')
             keys = ['fan_speed', 'temperature', 'power_draw', 'power_limit', 'memory_used', 'memory_total', 'utilization']
-            return dict(zip(keys, map(float, stats)))
+            stats_dict = dict(zip(keys, map(float, basic_stats)))
+            
+            # Fetch additional GPU stats from dmon command
+            result_dmon = subprocess.run(
+                ['nvidia-smi', 'dmon', '-s', 'ut', '-c', '1'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            dmon_output = result_dmon.stdout.split('\n')
+            if len(dmon_output) >= 3:  # Expecting at least header lines and one data line
+                dmon_data = dmon_output[2].split()  # Data line after headers
+                if len(dmon_data) >= 9:  # Expecting at least 9 columns (gpu, sm, mem, enc, dec, jpg, ofa, rxpci, txpci)
+                    dmon_keys = ['gpu_idx', 'sm', 'mem', 'enc', 'dec', 'jpg', 'ofa', 'rxpci', 'txpci']
+                    stats_dict.update(dict(zip(dmon_keys[1:], map(float, dmon_data[1:]))))  # Skip gpu_idx, map rest to float
+            
+            return stats_dict
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"nvidia-smi command failed: {e}") from e
 

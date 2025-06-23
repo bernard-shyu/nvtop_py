@@ -26,16 +26,24 @@ class QCommonTable(QTableWidget):
 
 class GPUStatsTable(QCommonTable):
     def __init__(self, N_ROWS_TABLE):
-        super().__init__(N_ROWS_TABLE, 7, header_labels = [
+        super().__init__(N_ROWS_TABLE, 15, header_labels = [
             'Fan Speed', 'Temperature', 'Power Draw', 'Power Limit',
-            'Memory Used', 'Memory Total', 'Utilization'
+            'Memory Used', 'Memory Total', 'SM %', 'Memory %', 
+            'Encoder %', 'Decoder %', 'JPEG %', 'OFA %', 
+            'RX PCI (MB/s)', 'TX PCI (MB/s)', 'GPU.Utilization'
         ])
 
     def update_data(self, stats_dict, row=1):
-        # Update the second row (index 1) with dynamic values
-        # Set the third row (index 2) with fixed values on app startup
-        for col, (key, value) in enumerate(stats_dict.items()):
-            self.setItem(row, col, QTableWidgetItem(f"{value:.2f}"))
+        # Update the specified row with dynamic values
+        mappings = [
+            ('fan_speed', 0), ('temperature', 1), ('power_draw', 2), ('power_limit', 3),
+            ('memory_used', 4), ('memory_total', 5), ('sm', 7), ('mem', 8),
+            ('enc', 9), ('dec', 10), ('jpg', 11), ('ofa', 12),
+            ('rxpci', 13), ('txpci', 14), ('utilization', 6)
+        ]
+        for key, col in mappings:
+            if key in stats_dict:
+                self.setItem(row, col, QTableWidgetItem(f"{stats_dict[key]:.2f}"))
 
 class ProcessTable(QCommonTable):
     def __init__(self, N_ROWS_TABLE):
