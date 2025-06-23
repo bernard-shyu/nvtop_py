@@ -2,14 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+import subprocess
 
 class PlotWidget(FigureCanvas):
     def __init__(self, config):
         self.figure = Figure()
         self.ax_temp = self.figure.add_subplot(111)
-        self.ax_power = self.ax_temp.twinx()
-        self.ax_memory = self.ax_temp.twinx()
-        self.ax_util = self.ax_temp.twinx()
+        self.ax_usage = self.ax_temp.twinx()  # Single right-side axis for Power, Memory, and Utilization
+        self.gpu_name = self.get_gpu_name()
         super().__init__(self.figure)
         
         # Ensure we have at least 100 data points
@@ -31,50 +31,46 @@ class PlotWidget(FigureCanvas):
             'temp': self.ax_temp.plot([], [], label='Temperature (°C)', 
                                       color=config.get('temp_color', '#FF0000'), 
                                       linewidth=config.get('temp_width', 1.5))[0],
-            'power': self.ax_power.plot([], [], label='Power Draw (%)', 
+            'power': self.ax_usage.plot([], [], label='Power Draw (%)', 
                                       color=config.get('power_color', '#00FF00'), 
                                       linewidth=config.get('power_width', 1.5))[0],
-            'memory': self.ax_memory.plot([], [], label='Memory Used (%)', 
+            'memory': self.ax_usage.plot([], [], label='Memory Used (%)', 
                                       color=config.get('memory_color', '#0000FF'), 
                                       linewidth=config.get('memory_width', 1.5))[0],
-            'util': self.ax_util.plot([], [], label='GPU Utilization (%)', 
+            'util': self.ax_usage.plot([], [], label='GPU Utilization (%)', 
                                       color=config.get('util_color', '#FFFF00'), 
                                       linewidth=config.get('util_width', 1.5))[0]
         }
         
         # Configure axes with specific Y-axis display range to accommodate data value 0 visually
-        self.ax_temp.set_ylim(-5,   100)  # Temperature range in Celsius, max 100 degree
-        self.ax_power.set_ylim(-5,  100)  # Power usage in percent, max 100%
-        self.ax_memory.set_ylim(-5, 100)  # Memory usage in percent, max 100%
-        self.ax_util.set_ylim(-5,   100)  # Utilization in percent, max 100%
+        self.ax_temp.set_ylim(-5, 100)   # Temperature range in Celsius, max 100 degree
+        self.ax_usage.set_ylim(-5, 100)  # Combined usage in percent, max 100%
         
-        # Offset the right spines for visibility
-        self.ax_memory.spines["right"].set_position(("axes", 1.1))
-        self.ax_util.spines["right"].set_position(("axes", 1.2))
-        
-        # Set colors for axis labels to match lines
-        self.ax_temp.yaxis.label.set_color('r')
-        self.ax_power.yaxis.label.set_color('g')
-        self.ax_memory.yaxis.label.set_color('b')
-        self.ax_util.yaxis.label.set_color('y')
+        # Set colors for axis labels
+        self.ax_temp.yaxis.label.set_color(config.get('temp_color', '#FF0000'))
+        self.ax_usage.yaxis.label.set_color('black')  # Neutral color for combined axis
         
         # Get font size from config for plot elements
         font_size = config.get('plot_style', {}).get('font_size', 10)
         
         # Configure plot with custom font sizes
         self.ax_temp.legend(handles=[self.lines['temp'], self.lines['power'], self.lines['memory'], self.lines['util']], loc='upper left', fontsize=font_size)
-        self.ax_temp.set_title('GPU Statistics Over Time', fontsize=font_size + 2)
+        self.ax_temp.set_title(f'{self.gpu_name}  --  GPU Statistics Over Time', fontsize=font_size + 2)
         self.ax_temp.set_xlabel('Time (seconds)', fontsize=font_size)
         self.ax_temp.set_ylabel('Temperature (°C)', fontsize=font_size)
-        self.ax_power.set_ylabel('Power Draw (%)', fontsize=font_size)
-        self.ax_memory.set_ylabel('Memory Used (%)', fontsize=font_size)
-        self.ax_util.set_ylabel('Utilization (%)', fontsize=font_size)
+        self.ax_usage.set_ylabel('Usage Percent (%)', fontsize=font_size)
         self.ax_temp.grid(True)
         # Set tick label sizes
         self.ax_temp.tick_params(axis='both', labelsize=font_size)
-        self.ax_power.tick_params(axis='y', labelsize=font_size)
-        self.ax_memory.tick_params(axis='y', labelsize=font_size)
-        self.ax_util.tick_params(axis='y', labelsize=font_size)
+        self.ax_usage.tick_params(axis='y', labelsize=font_size)
+
+    def get_gpu_name(self):
+        # Fetch GPU name (static value, could be cached if needed)
+        gpu_name = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            encoding="utf-8"
+        ).strip()
+        return gpu_name if gpu_name else "Unknown GPU"
 
     def update_plot(self, stats):
         # Update circular buffer
