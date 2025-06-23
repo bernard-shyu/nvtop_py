@@ -6,7 +6,7 @@ X_data_points = 500     # Number of data points to display on X-axis
 RESOLUTION = "1920x1080"  # Default window resolution
 
 [plot_style]
-font_size = 16
+font_size = 18
 
 # Line styles for plots. For color names: https://doc.qt.io/qt-6/qml-color.html
 temp_color = "red"  # color for Temperature
@@ -19,4 +19,4 @@ util_color = "chartreuse"   # color for Utilization
 util_width = 1.5
 
 [table_style]
-font_size = 16
+font_size = 20

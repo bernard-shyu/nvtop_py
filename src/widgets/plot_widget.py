@@ -15,6 +15,7 @@ class PlotWidget(FigureCanvas):
         # Ensure we have at least 100 data points
         self.max_points = config.get('X_data_points', 1000)
         self.max_points = max(100, int(self.max_points))  # Ensure minimum of 100 points
+        self.refresh_interval = config.get('refresh_interval', 1.0)  # Get refresh interval in seconds, default to 1.0
 
         # Initialize circular buffer arrays
         self.buffer_index = 0
@@ -63,7 +64,7 @@ class PlotWidget(FigureCanvas):
         # Configure plot with custom font sizes
         self.ax_temp.legend(handles=[self.lines['temp'], self.lines['power'], self.lines['memory'], self.lines['util']], loc='upper left', fontsize=font_size)
         self.ax_temp.set_title('GPU Statistics Over Time', fontsize=font_size + 2)
-        self.ax_temp.set_xlabel('Time Steps', fontsize=font_size)
+        self.ax_temp.set_xlabel('Time (seconds)', fontsize=font_size)
         self.ax_temp.set_ylabel('Temperature (°C)', fontsize=font_size)
         self.ax_power.set_ylabel('Power Draw (%)', fontsize=font_size)
         self.ax_memory.set_ylabel('Memory Used (%)', fontsize=font_size)
@@ -84,7 +85,7 @@ class PlotWidget(FigureCanvas):
 
         power_used  = stats.get('power_draw', 0)
         power_limit = stats.get('power_limit', 100) or 100                # Avoid division by zero, default to 100W
-        self.power_draw_data[index] =  (power_used / power_limit * 100)
+        self.power_draw_data[index] = (power_used / power_limit * 100)
 
         memory_used  = stats.get('memory_used', 0)
         memory_total = stats.get('memory_total', 16384) or 16384          # Avoid division by zero, default to 16GB
@@ -119,9 +120,9 @@ class PlotWidget(FigureCanvas):
             memory_segment = np.concatenate((self.mem_utilization_data[start_index:self.max_points], self.mem_utilization_data[0:end_index]))
             util_segment = np.concatenate((self.gpu_utilization_data[start_index:self.max_points], self.gpu_utilization_data[0:end_index]))
         
-        # Adjust time data to show sliding effect (normalize to 0 to max_points for display)
+        # Adjust time data to show sliding effect (convert to seconds using refresh_interval)
         if len(time_segment) > 0:
-            time_segment = np.arange(len(time_segment))
+            time_segment = np.arange(len(time_segment)) * self.refresh_interval
         
         # Update plot data
         self.lines['temp'].set_data(time_segment, temp_segment)
@@ -129,8 +130,8 @@ class PlotWidget(FigureCanvas):
         self.lines['memory'].set_data(time_segment, memory_segment)
         self.lines['util'].set_data(time_segment, util_segment)
         
-        # Set X-axis limits to show sliding window from right to left
-        self.ax_temp.set_xlim(0, self.max_points)
+        # Set X-axis limits to show sliding window from right to left (in seconds)
+        self.ax_temp.set_xlim(0, self.max_points * self.refresh_interval)
         
         # Y-axis is fixed, no need to autoscale
         self.ax_temp.relim()
