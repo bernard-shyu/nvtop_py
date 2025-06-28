@@ -37,9 +37,9 @@ class GPUStatsTable(QCommonTable):
         # Update the specified row with dynamic values
         mappings = [
             ('fan_speed', 0), ('temperature', 1), ('power_draw', 2), ('power_limit', 3),
-            ('memory_used', 4), ('memory_total', 5), ('sm', 7), ('mem', 8),
-            ('enc', 9), ('dec', 10), ('jpg', 11), ('ofa', 12),
-            ('rxpci', 13), ('txpci', 14), ('utilization', 6)
+            ('memory_used', 4), ('memory_total', 5), ('sm', 6), ('mem', 7),
+            ('enc', 8), ('dec', 9), ('jpg', 10), ('ofa', 11),
+            ('rxpci', 12), ('txpci', 13), ('utilization', 14)
         ]
         for key, col in mappings:
             if key in stats_dict:
