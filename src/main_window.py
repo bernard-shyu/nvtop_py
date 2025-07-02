@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QLabel, QSizePolicy
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QLabel, QSizePolicy, QSplitter
+from PyQt5.QtCore import Qt
 from .worker import CollectorWorker
 from .widgets.table_widget import GPUStatsTable, ProcessTable
 from .widgets.plot_widget import PlotWidget
@@ -12,8 +13,12 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("NVTop Monitor")
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
-        layout = QVBoxLayout()
-        self.central_widget.setLayout(layout)
+        
+        # Use QSplitter for adjustable heights
+        self.splitter = QSplitter(Qt.Vertical)
+        main_layout = QVBoxLayout() # Create a layout instance
+        main_layout.addWidget(self.splitter) # Add the splitter to this layout
+        self.central_widget.setLayout(main_layout) # Set this layout for the central widget
 
         self.config = config
         # Set initial resolution if provided in config
@@ -35,9 +40,15 @@ class MainWindow(QMainWindow):
         self.process_table.setStyleSheet(f"font-size: {table_font_size}px;")
         
         self.stats_table_row = 0  # Start with the third row for static values
-        layout.addWidget(self.plot_widget, stretch = 1)  # Stretch factor 1 to expand
-        layout.addWidget(self.stats_table, stretch = 0)  # No stretch, fixed height
-        layout.addWidget(self.process_table, stretch = 0)  # No stretch, fixed height
+        
+        # Add widgets to the splitter
+        self.splitter.addWidget(self.plot_widget)
+        self.splitter.addWidget(self.stats_table)
+        self.splitter.addWidget(self.process_table)
+
+        # Set initial sizes for the splitter (optional, but good for default layout)
+        # These values are just examples, you might need to adjust them based on desired initial appearance
+        self.splitter.setSizes([int(height * 0.6), int(height * 0.2), int(height * 0.2)])
 
     def start_worker(self):
         self.worker = CollectorWorker(self.config)
