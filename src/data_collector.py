@@ -15,7 +15,7 @@ class DataCollector:
                 text=True,
                 check=True
             )
-            basic_stats = result_basic.stdout.strip().split(',')
+            basic_stats = [s.strip().split()[0] for s in result_basic.stdout.strip().split(',')]
             keys = ['fan_speed', 'temperature', 'power_draw', 'power_limit', 'memory_used', 'memory_total', 'utilization']
             stats_dict = dict(zip(keys, map(float, basic_stats)))
             
