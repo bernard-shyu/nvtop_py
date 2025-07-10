@@ -2,21 +2,51 @@
 
 [general]
 refresh_interval = 0.5  # Refresh interval in seconds
-X_data_points = 500     # Number of data points to display on X-axis
+X_data_points = 200     # Number of data points to display on X-axis
 RESOLUTION = "1920x1080"  # Default window resolution
 
 [plot_style]
 font_size = 20
 
-# Line styles for plots. For color names: https://doc.qt.io/qt-6/qml-color.html
-temp_color = "red"  # color for Temperature
-temp_width = 1.5
-power_color = "green"  # color for Power Draw
-power_width = 1.5
-memory_color = "brown"  # color for Memory Used
-memory_width = 2.5
-util_color = "blue"   # color for Utilization
-util_width = 2.5
+# Available Linestyles: solid / dotted / dashed / dashdot
+
+[plot_style.temp]
+linestyle = "dotted"
+color = "red"
+width = 1.5
+visible = true
+
+[plot_style.power]
+linestyle = "dotted"
+color = "green"
+width = 1.5
+visible = true
+
+[plot_style.memory]
+linestyle = "solid"
+color = "brown"
+width = 2.5
+visible = true
+
+[plot_style.util]
+linestyle = "solid"
+color = "blue"
+width = 2.5
+visible = true
+
+[plot_style.rxpci]
+linestyle = "dashed"
+color = "magenta"
+width = 1.5
+visible = false
+maxval = 1000
+
+[plot_style.txpci]
+linestyle = "dashed"
+color = "cyan"
+width = 1.5
+visible = true
+maxval = 1000
 
 [table_style]
 font_size = 22

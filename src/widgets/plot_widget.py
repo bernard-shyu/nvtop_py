@@ -8,9 +8,12 @@ class PlotWidget(FigureCanvas):
     def __init__(self, config):
         self.figure = Figure()
         self.ax_temp = self.figure.add_subplot(111)
-        self.ax_usage = self.ax_temp.twinx()  # Single right-side axis for Power, Memory, and Utilization
+        self.ax_usage = self.ax_temp.twinx()  # Right-side axis for Power, Memory, Utilization, RXPCI, TXPCI
         self.gpu_name = self.get_gpu_name()
         super().__init__(self.figure)
+        
+        # Store config reference for later use
+        self.config = config
         
         # Ensure we have at least 100 data points
         self.max_points = config.get('X_data_points', 1000)
@@ -24,37 +27,57 @@ class PlotWidget(FigureCanvas):
         self.power_draw_data = np.zeros(self.max_points)
         self.mem_utilization_data = np.zeros(self.max_points)
         self.gpu_utilization_data = np.zeros(self.max_points)
+        self.rxpci_data = np.zeros(self.max_points)
+        self.txpci_data = np.zeros(self.max_points)
         self.data_count = 0
 
         # Initialize plot lines on respective axes with styles from config
         self.lines = {
             'temp': self.ax_temp.plot([], [], label='Temperature (°C)', 
-                                      color=config.get('temp_color', '#FF0000'), 
-                                      linewidth=config.get('temp_width', 1.5))[0],
+                                      color=config.get('plot_style.temp.color', 'red'), 
+                                      linewidth=config.get('plot_style.temp.width', 1.5),
+                                      linestyle=config.get('plot_style.temp.linestyle', 'solid'))[0],
             'power': self.ax_usage.plot([], [], label='Power Draw (%)', 
-                                      color=config.get('power_color', '#00FF00'), 
-                                      linewidth=config.get('power_width', 1.5))[0],
+                                      color=config.get('plot_style.power.color', 'green'), 
+                                      linewidth=config.get('plot_style.power.width', 1.5),
+                                      linestyle=config.get('plot_style.power.linestyle', 'solid'))[0],
             'memory': self.ax_usage.plot([], [], label='Memory Used (%)', 
-                                      color=config.get('memory_color', '#0000FF'), 
-                                      linewidth=config.get('memory_width', 1.5))[0],
+                                      color=config.get('plot_style.memory.color', 'brown'), 
+                                      linewidth=config.get('plot_style.memory.width', 2.5),
+                                      linestyle=config.get('plot_style.memory.linestyle', 'solid'))[0],
             'util': self.ax_usage.plot([], [], label='GPU Utilization (%)', 
-                                      color=config.get('util_color', '#FFFF00'), 
-                                      linewidth=config.get('util_width', 1.5))[0]
+                                      color=config.get('plot_style.util.color', 'blue'), 
+                                      linewidth=config.get('plot_style.util.width', 2.5),
+                                      linestyle=config.get('plot_style.util.linestyle', 'solid'))[0],
+            'rxpci': self.ax_usage.plot([], [], label='PCIe RX Utilization (%)', 
+                                      color=config.get('plot_style.rxpci.color', 'magenta'), 
+                                      linewidth=config.get('plot_style.rxpci.width', 1.5),
+                                      linestyle=config.get('plot_style.rxpci.linestyle', 'solid'))[0],
+            'txpci': self.ax_usage.plot([], [], label='PCIe TX Utilization (%)', 
+                                      color=config.get('plot_style.txpci.color', 'cyan'), 
+                                      linewidth=config.get('plot_style.txpci.width', 1.5),
+                                      linestyle=config.get('plot_style.txpci.linestyle', 'solid'))[0]
         }
+
+        # Set visibility for each line based on config
+        for key in self.lines:
+            visible = config.get(f'plot_style.{key}.visible', True)
+            self.lines[key].set_visible(visible)
         
         # Configure axes with specific Y-axis display range to accommodate data value 0 visually
         self.ax_temp.set_ylim(-5, 100)   # Temperature range in Celsius, max 100 degree
         self.ax_usage.set_ylim(-5, 100)  # Combined usage in percent, max 100%
         
         # Set colors for axis labels
-        self.ax_temp.yaxis.label.set_color(config.get('temp_color', '#FF0000'))
+        self.ax_temp.yaxis.label.set_color(config.get('plot_style.temp.color', 'red'))
         self.ax_usage.yaxis.label.set_color('black')  # Neutral color for combined axis
         
         # Get font size from config for plot elements
         font_size = config.get('plot_style', {}).get('font_size', 10)
         
         # Configure plot with custom font sizes
-        self.ax_temp.legend(handles=[self.lines['temp'], self.lines['power'], self.lines['memory'], self.lines['util']], loc='upper left', fontsize=font_size)
+        visible_lines = [line for line in self.lines.values() if line.get_visible()]
+        self.ax_temp.legend(handles=visible_lines, loc='upper left', fontsize=font_size)
         self.ax_temp.set_title(f'{self.gpu_name}  --  GPU Statistics Over Time', fontsize=font_size + 2)
         self.ax_temp.set_xlabel('Time (seconds)', fontsize=font_size)
         self.ax_temp.set_ylabel('Temperature (°C)', fontsize=font_size)
@@ -90,6 +113,15 @@ class PlotWidget(FigureCanvas):
         self.temperature_data[index]     = stats.get('temperature', 0)
         self.gpu_utilization_data[index] = stats.get('utilization', 0)
         
+        # Handle RXPCI and TXPCI data
+        rxpci = stats.get('rxpci', 0)
+        rxpci_maxval = self.config.get('plot_style.rxpci.maxval', 150)
+        self.rxpci_data[index] = (rxpci / rxpci_maxval * 100) if rxpci_maxval != 0 else 0
+
+        txpci = stats.get('txpci', 0)
+        txpci_maxval = self.config.get('plot_style.txpci.maxval', 150)
+        self.txpci_data[index] = (txpci / txpci_maxval * 100) if txpci_maxval != 0 else 0
+        
         # Update buffer index
         self.buffer_index = (index + 1) % self.max_points
         self.data_count += 1
@@ -109,12 +141,16 @@ class PlotWidget(FigureCanvas):
             power_segment = self.power_draw_data[start_index:end_index]
             memory_segment = self.mem_utilization_data[start_index:end_index]
             util_segment = self.gpu_utilization_data[start_index:end_index]
+            rxpci_segment = self.rxpci_data[start_index:end_index]
+            txpci_segment = self.txpci_data[start_index:end_index]
         else:
             time_segment = np.concatenate((self.time_data[start_index:self.max_points], self.time_data[0:end_index]))
             temp_segment = np.concatenate((self.temperature_data[start_index:self.max_points], self.temperature_data[0:end_index]))
             power_segment = np.concatenate((self.power_draw_data[start_index:self.max_points], self.power_draw_data[0:end_index]))
             memory_segment = np.concatenate((self.mem_utilization_data[start_index:self.max_points], self.mem_utilization_data[0:end_index]))
             util_segment = np.concatenate((self.gpu_utilization_data[start_index:self.max_points], self.gpu_utilization_data[0:end_index]))
+            rxpci_segment = np.concatenate((self.rxpci_data[start_index:self.max_points], self.rxpci_data[0:end_index]))
+            txpci_segment = np.concatenate((self.txpci_data[start_index:self.max_points], self.txpci_data[0:end_index]))
         
         # Adjust time data to show sliding effect (convert to seconds using refresh_interval)
         if len(time_segment) > 0:
@@ -125,6 +161,8 @@ class PlotWidget(FigureCanvas):
         self.lines['power'].set_data(time_segment, power_segment)
         self.lines['memory'].set_data(time_segment, memory_segment)
         self.lines['util'].set_data(time_segment, util_segment)
+        self.lines['rxpci'].set_data(time_segment, rxpci_segment)
+        self.lines['txpci'].set_data(time_segment, txpci_segment)
         
         # Set X-axis limits to show sliding window from right to left (in seconds)
         self.ax_temp.set_xlim(0, self.max_points * self.refresh_interval)
